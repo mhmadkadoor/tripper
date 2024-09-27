@@ -1,0 +1,124 @@
+
+
+{% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+        {% endfor %}
+    </ul>
+{% endif %}
+
+
+
+<h1>{{ trip.title }}</h1>
+<p><strong>Date:</strong> {{ trip.date }}</p>
+<p><strong>Leader:</strong> {{ trip.leader.username }}</p>
+<p><strong>Trip Code:</strong> {{ trip.code }}</p>
+<p>Total Trip Cost: {{ total_paid }}</p>
+<p>Completion Ratio: {{ complete_ratio }}%</p>
+<p>Confirmed ratio: {{confirmed_ratio}}%</p>
+<h3>Members table</h3>
+<table>
+    <tr>
+        <th>Member</th>
+        <th>Paid</th>
+        <th>Owes</th>
+        <th>Collects</th>
+        {% if trip.has_ended %}<th>Payment confirmed</th>{% endif %}
+    </tr>
+    {% for member, details in split_bill.items %}
+    <tr>
+        <td>{{ member.username }} {% if member.profile.iban %}<br>   {{ member.profile.bank_name }}</br> <br> {{ member.profile.iban }}  </br>{% else %}<br> Iban is not avalible </br>{% endif %} </td>
+        <td>{{ details.paid }}</td>
+        <td>{{ details.owes }}</td>
+        <td>{{ details.collects }}</td>
+        {% if trip.has_ended %}<td>{{ details.payment_confirmed }}</td>{% endif %}
+    </tr>
+    {% endfor %}
+</table>
+
+<div id="bank-info" style="display:none;">
+    <p>IBAN: <span id="iban"></span></p>
+    <p>Bank Name: <span id="bank-name"></span></p>
+</div>
+
+{% if trip.has_ended %}
+<form action="{% url 'confirm_payment' trip.id %}" method="POST">
+    {% csrf_token %}
+    <label>
+        <input type="checkbox" name="confirm" {% if member.payment_confirmed %}checked disabled{% endif %}>
+        I have collected/paid my amount
+    </label>
+    <button type="submit" {% if member.payment_confirmed %}disabled{% endif %}>Confirm</button>
+</form>
+{% endif %}
+
+
+{% if request.user == trip.leader %}
+    <form method="POST" action="{% url 'delete_trip' trip.id %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Delete Trip</button>
+    </form>
+{% endif %}
+
+<h2>Items</h2>
+
+    {% if trip.items.all %}
+    <ul>
+        {% for item in trip.items.all %}
+            <li>
+                {{ item.name }} (Quantity: {{ item.quantity }}) 
+                {% if item.payer %}
+                    - Paid by {{ item.payer.username }} (Amount: ${{ item.amount_paid }})
+                {% else %}
+                    <form method="POST" action="{% url 'pay_item' item.id %}">
+                        {% csrf_token %}
+                        <label for="amount_paid_{{ item.id }}">Amount Paid:</label>
+                        <input type="number" name="amount_paid" id="amount_paid_{{ item.id }}" required>
+                        <button type="submit" class="btn btn-primary">Pay</button>
+                        {% if request.user == trip.leader %}
+                            <button type="button" class="btn btn-danger" onclick="window.location.href='{% url 'delete_item' item.id %}'">Delete</button>
+                        {% endif %}
+                    </form>
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ul>        
+    {% else %}
+        <p>No items added yet</p>
+    {% endif %}
+
+
+{% if request.user in trip.participants.all and not trip.has_ended%}
+    <h3>Add New Item</h3>
+    <form method="POST" action="{% url 'add_item' trip.id %}">
+        {% csrf_token %}
+        <label for="item_name">Item Name:</label>
+        <input type="text" name="item_name" id="item_name" required>
+
+        <label for="quantity">Quantity:</label>
+        <input type="number" name="quantity" id="quantity" min="1" required>
+
+        <button type="submit" class="btn btn-success">Add Item</button>
+    </form>
+{% endif %}
+
+
+
+
+{% if user != trip.leader %}
+<form action="{% url 'leave_trip' trip.id %}" method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Leave Trip</button>
+</form>
+{% endif %}
+
+{% if request.user == trip.leader and not trip.has_ended %}
+<form action="{% url 'end_trip' trip.id %}" method="POST">
+    {% csrf_token %}
+    <button type="submit">End Trip</button>
+</form>
+{% endif %}
+
+
+<a href="{% url 'home' %}" class="btn btn-secondary">Back to Home</a>

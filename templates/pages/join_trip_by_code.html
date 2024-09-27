@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+
+{% if trip.has_ended %}
+    <h1>This trip has already ended</h1>
+    <h2>Title:{{ trip.title }}</h2>
+    <p>Date:{{ trip.date }}</p>
+    <p>Leader:{{ trip.leader.username }}</p>
+    <a href="{% url 'home' %}">Back to Home</a>
+{% else %}
+    <h1>Are you sure you want to join this trip?</h1>
+    <form method="POST" action="{% url 'join_trip_by_code' trip.code %}" >
+        {% csrf_token %}
+        <h2>Title:{{ trip.title }}</h2>
+        <p>Date:{{ trip.date }}</p>
+        <p>Leader:{{ trip.leader.username }}</p>
+        <input type="submit" name="yes" value="Yes">
+        <input type="button" value="No" onclick="window.location.href='{% url 'home' %}'">
+    </form>
+{% endif %}
+
+{% endblock %}

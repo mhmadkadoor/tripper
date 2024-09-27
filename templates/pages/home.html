@@ -1,0 +1,189 @@
+{% extends "base.html" %} 
+{% block content %}
+
+{% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+        {% endfor %}
+    </ul>
+{% endif %}
+Welcome to the home page, {{ user.username }}
+<button>
+    <a href="{% url 'logout' %}">Logout</a>
+</button>
+
+
+
+<h2>Trips Created</h2>
+{% if created_trips %}
+    <ul>
+        {% for trip in trips %}
+            {% if trip.leader == user %}
+            <li>
+                <strong>{{ trip.title }}</strong> - {{ trip.date }} <br>
+                <strong>Trip code: {{ trip.code }}</strong> <br>
+                <a href="{% url 'trip_details' trip.id %}" class="btn btn-info">Details</a>
+            </li>
+            {% endif %}    
+        {% endfor %}
+    </ul>
+{% else %}
+<p>No trips created yet</p>
+{% endif %}
+
+<h2>Joined Trips</h2>
+{% if joined_trips %}
+    <ul>
+        {% for trip in trips %}
+            {% if trip.leader != user %}
+                <li>
+                    <strong>{{ trip.title }}</strong> - {{ trip.date }} <br>
+                    <strong>Trip code: {{ trip.code }}</strong> <br>
+                    <a href="{% url 'trip_details' trip.id %}" class="btn btn-info">Details</a>
+                </li>
+            {% endif %}
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p>No trips joined yet</p>
+{% endif %}
+
+
+<!-- Modal structure -->
+<div>
+    <h2>Join Trip</h2>
+    <form id="join-trip-form" method="POST" action="{% url 'join_trip' %}">
+        {% csrf_token %}
+        <label for="trip_code">Enter Trip Code:</label>
+        <input type="text" name="trip_code" id="trip_code" placeholder="Enter Trip Code" required>
+        <button type="button" id="check-trip-btn">Check Trip</button>
+    </form>
+</div>
+
+<!-- Modal Structure -->
+<div id="confirm-modal" style="display: none; border: 1px solid #333; padding: 20px; background: #f0f0f0;">
+    <h2>Join Trip</h2>
+    <p id="trip-info"></p>
+    <button id="confirm-join-btn">Yes, Join</button>
+    <button id="cancel-btn">Cancel</button>
+</div>
+<div>
+        <h2>Create Trip</h2>
+        <form method="POST" action="{% url 'create_trip' %}">
+            {% csrf_token %}
+            <input type="text" name="title" placeholder="Trip Title" required>
+            <input type="date" name="date" required>
+            <div id="items-container">
+                <div class="item-entry">
+                    <input type="text" name="items[]" placeholder="Item Name" required>
+                    <input type="number" name="quantities[]" placeholder="Quantity" min="1" required>
+                </div>
+            </div>
+            <button type="button" onclick="addItem()">Add Item</button>
+            <input type="submit" value="Create Trip">
+        </form>
+
+</div>
+
+
+
+<div> 
+    {% if not user.profile.iban or not user.profile.bank_name %}
+
+    <form method="POST" action="{% url 'set_profile' %}">
+        {% csrf_token %}
+        <input type='text' name='bank_name' value='{{ user.profile.bank_name }}' required  placeholder='Enter your bank name'>
+        <input type='text' name= 'iban' value='{{ user.profile.iban }}' required  placeholder='Enter your Iban'>
+        <input type="submit" value='register'>
+    </form>
+
+
+    {% else %}
+    <form method="POST" action="{% url 'set_profile' %}">
+        {% csrf_token %}
+        <input type='text' name='bank_name' value='{{ user.profile.bank_name }}' required placeholder='Enter your bank name'>
+        <input type='text' name= 'iban' value='{{ user.profile.iban }}' required  placeholder='Enter your Iban'>
+        <input type="submit" value='update'>
+    </form>
+
+    {% endif %}
+    
+
+
+
+
+
+</div>
+
+
+
+
+
+
+<script>
+    function addItem() {
+        const container = document.getElementById("items-container");
+        const newItem = document.createElement("div");
+        newItem.classList.add("item-entry");
+        newItem.innerHTML = `
+            <input type="text" name="items[]" placeholder="Item Name" required>
+            <input type="number" name="quantities[]" placeholder="Quantity" min="1" required>
+        `;
+        container.appendChild(newItem);
+    }
+
+</script>
+
+<script>
+    document.getElementById('check-trip-btn').addEventListener('click', function() {
+        const tripCode = document.getElementById('trip_code').value;
+
+        // Validate if trip code is provided
+        if (!tripCode.trim()) {
+            alert('Please enter a trip code.');
+            return;
+        }
+
+        // Make AJAX call to get trip details
+        fetch(`/get_trip_info/${tripCode}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Populate modal with trip info
+                    document.getElementById('trip-info').textContent = `Trip: ${data.title}, Date: ${data.date}, Leader: ${data.leader}`;
+                    document.getElementById('confirm-modal').style.display = 'block';
+
+                // Display the modal
+                document.getElementById('confirm-modal').style.display = 'block';
+
+                const joinBtn = document.getElementById('confirm-join-btn');
+
+                // Disable the "Yes, Join" button if the trip has ended
+                if (data.trip_end) {
+                    joinBtn.disabled = true;
+                    joinBtn.textContent = 'Trip has ended';
+                } else {
+                    joinBtn.disabled = false;
+                    joinBtn.textContent = 'Yes, Join';
+                }
+
+                    // Handle the confirmation to join the trip
+                    document.getElementById('confirm-join-btn').addEventListener('click', function() {
+                        document.getElementById('join-trip-form').submit(); // Submit the form to join the trip
+                    });
+                } else {
+                    alert('Trip not found or invalid code.');
+                }
+            }).catch(error => {
+                console.error('Error:', error);
+                alert('There was an error fetching the trip details.');
+            });
+    });
+
+    // Hide the modal if "Cancel" is clicked
+    document.getElementById('cancel-btn').addEventListener('click', function() {
+        document.getElementById('confirm-modal').style.display = 'none';
+    });
+</script>
+{% endblock content %}
