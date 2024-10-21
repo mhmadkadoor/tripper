@@ -1,4 +1,13 @@
-{% extends "base.html" %} 
+{% extends "base.html" %}
+
+{% block head %}
+    
+{% load static %}
+<link rel="stylesheet" href="{% static 'css\pages\home.css' %}">
+static\css\pages\home.css
+{% endblock head %}
+
+
 {% block content %}
 
 {% if messages %}
@@ -22,7 +31,7 @@ Welcome to the home page, {{ user.username }}
             {% if trip.leader == user %}
             <li>
                 <strong>{{ trip.title }}</strong> - {{ trip.date }} <br>
-                <strong>Trip code: {{ trip.code }}</strong> <br>
+                <strong class='bonga' >Trip code: {{ trip.code }}</strong> <br>
                 <a href="{% url 'trip_details' trip.id %}" class="btn btn-info">Details</a>
             </li>
             {% endif %}    

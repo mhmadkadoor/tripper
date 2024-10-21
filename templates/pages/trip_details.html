@@ -1,4 +1,13 @@
+{% extends 'base.html' %}
 
+{% block head %}
+    
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/pages/trip_details.css' %}">
+
+{% endblock head %}
+
+{% block content %}
 
 {% if messages %}
     <ul class="messages">
@@ -122,3 +131,5 @@
 
 
 <a href="{% url 'home' %}" class="btn btn-secondary">Back to Home</a>
+
+{% endblock content %}
